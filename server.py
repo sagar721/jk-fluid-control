@@ -2510,6 +2510,20 @@ def handle_after_request(response):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     
+    # Clean up duplicate CORS Access-Control-Allow-Origin headers
+    origins = response.headers.getlist("Access-Control-Allow-Origin")
+    if len(origins) > 1 or (origins and "*" in origins):
+        response.headers.pop("Access-Control-Allow-Origin", None)
+        origin = request.headers.get("Origin")
+        allowed_origins = [
+            "https://jk-crm.vercel.app",
+            "https://jk-fluid-control.vercel.app",
+            "http://localhost:5173",
+            "http://localhost:3000"
+        ]
+        if origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+    
     idem_key = request.headers.get("Idempotency-Key")
     if idem_key and idem_key not in _idempotency_cache:
         try:
