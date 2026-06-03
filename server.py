@@ -2461,7 +2461,16 @@ def followup_scheduler_loop():
 
 # Flask Setup
 app = Flask(__name__, static_folder=None)
-CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": "*"}})
+CORS(
+    app,
+    resources={r"/api/*": {"origins": [
+        "https://jk-crm.vercel.app",
+        "https://jk-fluid-control.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000"
+    ]}},
+    supports_credentials=True
+)
 
 # Request filters & Rate limit checks
 @app.before_request
