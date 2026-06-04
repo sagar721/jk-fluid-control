@@ -1,12 +1,9 @@
 const STORAGE_KEY = "jkfc-crm-state-v1";
 const AUTH_STORAGE_KEY = "jkfc-crm-auth-v1";
-const placeholder = "VITE_API_BASE_URL";
-if (typeof import.meta !== "undefined" && !import.meta.env) {
-  import.meta.env = { VITE_API_BASE_URL: placeholder.startsWith("http") ? placeholder : "https://jk-crm-backend.onrender.com" };
-}
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://jk-crm-backend.onrender.com";
+// API_BASE is replaced at build time by scripts/build.js using VITE_API_BASE_URL env var.
+// On Vercel: set VITE_API_BASE_URL = https://jk-crm-backend.onrender.com
+// Local dev fallback: http://127.0.0.1:8765 (injected by build script automatically)
+const API_BASE = "VITE_API_BASE_URL";
 const DEFAULT_PAGE_SIZE = 50;
 const COLLECTION_KEYS = ["users", "companies", "contacts", "stages", "inquiries", "products", "pipeline", "quotations", "quoteItems", "orders", "activities", "messages", "emails", "automations", "automationLog", "audit"];
 const PAGE_COLLECTIONS = {

@@ -32,15 +32,21 @@ if (!process.env.VERCEL) {
 for (const file of files) {
   if (file === "app.js") {
     let content = fs.readFileSync(path.join(root, file), "utf8");
-    let apiUrl = process.env.VITE_API_BASE_URL;
+    let apiUrl = process.env.VITE_API_BASE_URL || "";
     if (!apiUrl) {
       if (process.env.VERCEL) {
-        console.error("FATAL: VITE_API_BASE_URL is not set in Vercel environment variables.");
-        process.exit(1);
+        // On Vercel, warn but use production Render URL as safe fallback
+        console.warn("⚠️  VITE_API_BASE_URL not set in Vercel env vars. Falling back to https://jk-crm-backend.onrender.com");
+        console.warn("   → Go to Vercel → Project Settings → Environment Variables and add VITE_API_BASE_URL");
+        apiUrl = "https://jk-crm-backend.onrender.com";
+      } else {
+        // Local dev — point to local backend
+        apiUrl = "http://127.0.0.1:8765";
       }
-      apiUrl = "http://127.0.0.1:8765";
     }
-    content = content.replace("VITE_API_BASE_URL", apiUrl);
+    // Replace the exact quoted placeholder string — avoids partial matches in comments/keys
+    content = content.replace('"VITE_API_BASE_URL"', JSON.stringify(apiUrl));
+    console.log(`  API_BASE → ${apiUrl}`);
     fs.writeFileSync(path.join(dist, file), content);
   } else {
     copyFile(file);

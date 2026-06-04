@@ -74,8 +74,21 @@ def log_structured(action, user_id, duration_ms, status_code, extra=None):
     app_log(f"Structured log: {action}", **log_data)
 
 ROOT = Path(__file__).resolve().parent
-DB_PATH = ROOT / "crm.sqlite3"
 DIST = ROOT / "dist"
+
+# FIX: On Render (and other cloud platforms), /app is read-only.
+# Use SQLITE_DB_PATH env var for explicit override, or auto-detect Render
+# via the RENDER env var (automatically set by Render) and use /tmp.
+def _resolve_db_path() -> Path:
+    explicit = os.environ.get("SQLITE_DB_PATH", "").strip()
+    if explicit:
+        return Path(explicit)
+    # Render sets RENDER=true; Fly.io sets FLY_APP_NAME; Heroku sets DYNO
+    if os.environ.get("RENDER") or os.environ.get("FLY_APP_NAME") or os.environ.get("DYNO"):
+        return Path("/tmp/crm.sqlite3")
+    return ROOT / "crm.sqlite3"
+
+DB_PATH = _resolve_db_path()
 ACTIVE_DB_ENGINE = None
 REFRESH_SESSIONS = {}
 AI_CACHE = {}

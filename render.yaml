@@ -1,0 +1,60 @@
+services:
+  - type: web
+    name: jk-crm-backend
+    runtime: python
+    region: oregon
+    plan: free
+
+    buildCommand: pip install -r requirements.txt
+
+    # FIX: Use wsgi:application (not server:app) so gunicorn runs the
+    # validated startup sequence (JWT check + DB init + scheduler).
+    startCommand: gunicorn -c gunicorn.conf.py wsgi:application
+
+    healthCheckPath: /api/health
+
+    envVars:
+      # Render injects PORT automatically — do NOT hardcode it.
+      - key: RENDER
+        value: "true"
+
+      # Database — set to postgres in production
+      - key: DB_ENGINE
+        value: postgres
+      - key: AUTO_FALLBACK_SQLITE
+        value: "false"
+
+      # REQUIRED: Supabase PostgreSQL connection string
+      # Format: postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres?sslmode=require
+      - key: SUPABASE_DB_URL
+        sync: false   # Set manually in Render dashboard (never commit secrets)
+
+      # REQUIRED: JWT signing secrets (generate with: python3 -c "import secrets; print(secrets.token_hex(32))")
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+
+      # Token TTLs
+      - key: ACCESS_TOKEN_TTL_SECONDS
+        value: "900"
+      - key: REFRESH_TOKEN_TTL_SECONDS
+        value: "604800"
+
+      # Optional: OpenAI (AI assistant — fallback used if missing)
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+
+      # Optional: SMTP (simulated if missing)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
