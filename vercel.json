@@ -1,0 +1,11 @@
+{
+  "buildCommand": "node scripts/build.js",
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
