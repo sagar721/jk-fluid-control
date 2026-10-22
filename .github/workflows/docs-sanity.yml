@@ -1,0 +1,84 @@
+name: Documentation sanity checks
+
+on:
+  pull_request:
+    paths:
+      - "README.md"
+      - "**/*.md"
+      - ".github/workflows/docs-sanity.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "**/*.md"
+      - ".github/workflows/docs-sanity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs-sanity:
+    name: Check Markdown links and local paths
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate Markdown links and local paths
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+          from urllib.parse import unquote, urlparse
+
+          root = Path(".").resolve()
+          markdown_files = [p for p in root.rglob("*.md") if ".git" not in p.parts]
+          errors = []
+
+          # Catch common machine-specific absolute paths accidentally committed.
+          local_path_patterns = [
+              r"/Users/[^\s)\]>\"']+",
+              r"/home/[^\s)\]>\"']+",
+              r"[A-Za-z]:\\Users\\[^\s)\]>\"']+",
+          ]
+
+          link_pattern = re.compile(r"!?(?:\[[^\]]*\])\(([^)]+)\)")
+
+          for file in markdown_files:
+              text = file.read_text(encoding="utf-8", errors="replace")
+
+              for pattern in local_path_patterns:
+                  for match in re.finditer(pattern, text):
+                      errors.append(f"{file}: machine-specific path found: {match.group(0)}")
+
+              for match in link_pattern.finditer(text):
+                  target = match.group(1).strip().split()[0].strip("<>")
+                  if not target or target.startswith("#"):
+                      continue
+                  parsed = urlparse(target)
+                  if parsed.scheme or target.startswith("//") or target.startswith("mailto:"):
+                      continue
+
+                  path_part = unquote(parsed.path)
+                  if not path_part:
+                      continue
+                  resolved = (file.parent / path_part).resolve()
+                  if not resolved.exists():
+                      errors.append(f"{file}: broken relative link: {target}")
+
+          if errors:
+              print("Documentation sanity checks failed:")
+              for error in errors:
+                  print(f" - {error}")
+              sys.exit(1)
+
+          print(f"Documentation sanity checks passed for {len(markdown_files)} Markdown file(s).")
+          PY
